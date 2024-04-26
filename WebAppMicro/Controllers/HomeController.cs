@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.IdentityModel.Tokens.Jwt;
 using WebAppMicro.Models;
 using WebAppMicro.Service.IService;
 
@@ -11,11 +12,11 @@ namespace WebAppMicro.Controllers
     public class HomeController : Controller
     {
         private readonly IProductService _productService;
-      //  private readonly ICartService _cartService;
-        public HomeController(IProductService productService/* ICartService cartService*/)
+       private readonly IShoppingCartService _cartService;
+        public HomeController(IProductService productService, IShoppingCartService cartService)
         {
             _productService = productService;
-         //   _cartService = cartService;
+           _cartService = cartService;
         }
 
         public async Task<IActionResult> Index()
@@ -36,6 +37,7 @@ namespace WebAppMicro.Controllers
             return View(list);
         }
         [Authorize]
+      //  [HttpPost]
         public async Task<IActionResult> ProductDetails(int productId)
         {
             ProductDto? model = new();
@@ -52,6 +54,40 @@ namespace WebAppMicro.Controllers
             }
 
             return View(model);
+        }
+        [Authorize]
+        [HttpPost]
+        [ActionName("ProductDetails")]
+        public async Task<IActionResult> ProductDetails(ProductDto productDto)
+        {
+            CartDto cartDto = new CartDto()
+            {
+                CartHeader = new CartHeaderDto()
+                {
+                    UserId = User.Claims.Where(u => u.Type == JwtRegisteredClaimNames.Sub)?.FirstOrDefault()?.Value,
+                }
+            };
+            CartDetailsDto cartDetailsDto = new CartDetailsDto()
+            {
+                Count = productDto.Count,
+                ProductId = productDto.ProductId,
+            };
+            List<CartDetailsDto> cartDetails = new() { cartDetailsDto };
+            cartDto.CartDetails = cartDetails;
+           // ProductDto? model = new();
+
+            ResponseDto? response = await _cartService.UpsertCartAsync(cartDto);
+
+            if (response != null && response.IsSuccess)
+            {
+               return RedirectToAction(nameof(Index));
+            }
+            else
+            {
+                TempData["error"] = response?.Message;
+            }
+
+            return View(productDto);
         }
         public IActionResult Privacy()
         {

@@ -3,6 +3,7 @@ using MicroServices.ShoppingCartApi.Data;
 using MicroServices.ShoppingCartApi.Models;
 using MicroServices.ShoppingCartApi.Models.Dto;
 using MicroServices.ShoppingCartApi.Service.IService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace MicroServices.ShoppingCartApi.Controllers
 {
     [Route("api/cart")]
     [ApiController]
+    //[Authorize]
     public class ShoppingCartApiController : ControllerBase
     {
         private ResponseDto responseDto;
@@ -62,12 +64,13 @@ namespace MicroServices.ShoppingCartApi.Controllers
             catch (Exception ex)
             {
                 responseDto.Result = false;
+                responseDto.IsSuccess = false;
                 responseDto.Message = ex.Message;
             }
             return responseDto;
         }
 
-        [HttpPost("CartUpsert")]
+        [HttpPost("UpsertCart")]
         public async Task<ResponseDto>CartUpsert(CartDto cartDto)
         {
             try
